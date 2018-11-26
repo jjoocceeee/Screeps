@@ -66,3 +66,6 @@ typings/
 
 /.screeps.json
 dist/
+
+/notes
+*.bat

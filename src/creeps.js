@@ -1,3 +1,30 @@
+
+/*
+    Helper function. Used to create a creep.
+                Parameters: body_type   =>  array containing the skills the screep will have.
+                                            e.g. [CARRY, WORK, MOVE]
+                            options     =>  json object that will hold the json options for the screep.
+                                            e.g. {
+                                                 memory:{
+                                                state:"HARVEST",
+                                                role:"Worker"
+                                                }
+                                            }
+*/
+function create_creep(body_type, options){
+    // console.log(options.memory.role);
+    let name = `${options.memory.role}_${Object.keys(Game.creeps).length+1}`;
+    let number = Object.keys(Game.creeps).length;
+    while(Game.creeps[name] != undefined)
+    {
+        number++;
+        name = `${options.memory.role}_${number}`
+    }
+    for(const i in Game.spawns) {
+        Game.spawns[i].spawnCreep(body_type, `${name}`, options);
+    }
+}
+
 /*
     Creates a Worker Creep with the skills of [CARRY, WORK, MOVE]
 */
@@ -14,26 +41,22 @@ export function create_worker_creep() {
     }
 };
 
+
 /*
-    Helper function. Used to create a creep.
-                Parameters: body_type   =>  array containing the skills the screep will have.
-                                            e.g. [CARRY, WORK, MOVE]
-                            options     =>  json object that will hold the json options for the screep.
-                                            e.g. {
-                                                 memory:{
-                                                state:"HARVEST",
-                                                role:"Worker"
-                                                }
-                                            }
+    Creates a Worker Creep with the skills of [CARRY, WORK, MOVE]
 */
-function create_creep(body_type, options){
-    // console.log(options.memory.role);
+export function create_refiller_creep(){
+    let body_type = [CARRY, WORK, MOVE];
+    let options = {
+    memory:{
+        state:"HARVEST",
+        role:"Refiller"
+        }
+    }
     for(const i in Game.spawns) {
-        Game.spawns[i].spawnCreep(body_type, `${options.memory.role}_${Object.keys(Game.creeps).length+1}`, options);
+        create_creep(body_type, options);   
     }
 }
-
-
 
 /*
     Creates a builder Creep with the skills of [CARRY, WORK, MOVE]
@@ -81,15 +104,33 @@ function Build(creep){
 */
 function Harvest(creep){
     const targets = creep.room.find(FIND_SOURCES);
-
+    let target;
     if(targets.length){
-        const target = targets[0];
+        if(creep.memory.role == "Worker"){
+            target = targets[0];
+        }
+        else {
+            target = targets[0];
+        }
         if(creep.harvest(target) == ERR_NOT_IN_RANGE){
             creep.moveTo(target);
         }
     }
 }
 
+
+function Refill(creep){
+    const towers = creep.room.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
+    for(const i in towers){
+        if(towers[i].energy < towers[i].energyCapacity){
+            if(creep.transfer(tower, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE){
+                // console.log(creep.moveTo(tower));
+                creep.moveTo(tower);
+                return;
+            }
+        }
+    }
+}
 
 
 
@@ -114,6 +155,9 @@ function Next_State(creep){
                 if(creep.memory.role == "Worker"){
                     creep.memory.state = "UPGRADE";
                 }
+                else if(creep.memory.role == "Refiller"){
+                    creep.memory.state = "FILLING";
+                }
                 else {
                     creep.memory.state = "BUILDING";
                 }
@@ -123,12 +167,41 @@ function Next_State(creep){
             if(_.sum(creep.carry) == 0){
                 creep.memory.state = "HARVEST";
             }
+            else if(Object.keys(Game.structures).length == 0) {
+                //If there isn't a construction site, the switch back to upgradeing.
+                //TODO: I may loose out on a clock cycle here.
+                creep.memory.state = "UPGRADE";
+            }
+        break;
+        case "FILLING":
+            if(_.sum(creep.carry) == 0){
+                creep.memory.state = "HARVEST";
+            }
+            else if(Object.keys(Game.structures).length == 0) {
+                //If there isn't a construction site, the switch back to upgradeing.
+                //TODO: I may loose out on a clock cycle here.
+                creep.memory.state = "UPGRADE";
+            }
+            else if(check_tower_energy(creep) == 0){
+                creep.memory.state = "UPGRADE";
+            }
         break;
         default:
             creep.memory.state = "HARVEST";
         break;
         
     }
+}
+
+function check_tower_energy(creep){
+    const towers = creep.room.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
+    for(const i in towers){
+        console.log("Tower energy ", towers[i].energy);
+        if(towers[i].energy < towers[i].energyCapacity){
+            return 1;
+        }
+    }
+    return 0;
 }
 
 
@@ -150,6 +223,9 @@ function Current_state(creep){
             break;
         case "BUILDING":
             Build(creep);
+            break;
+        case "FILLING":
+            Refill(creep);
             break;
         default:
             Harvest(creep);
