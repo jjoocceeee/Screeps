@@ -1,4 +1,4 @@
-# Screeps Boilerplate
+# Screeps Custom Code
 Code used to implement and play https://screeps.com/
 ### About
 Uses Grunt and hot reload. On file saves, it will auto update on Screeps.
