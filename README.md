@@ -1,6 +1,7 @@
 # Screeps Boilerplate
+Code used to implement and play https://screeps.com/
 ### About
-This is a starter with Grunt and hot reload. On file saves, it will auto update on Screeps.
+Uses Grunt and hot reload. On file saves, it will auto update on Screeps.
 
 ### Config
 A config.json is required in the root of the project:
@@ -16,3 +17,6 @@ A config.json is required in the root of the project:
   "http": true
 }
 ```
+
+### SRC
+The Source File contains basic movement and functionality for Screeps Components.
